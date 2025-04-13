@@ -1,0 +1,128 @@
+{
+    "name": "TradingAgent",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "trade-input",
+          "responseMode": "onReceived"
+        },
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [240, 300]
+      },
+      {
+        "parameters": {
+          "values": {
+            "number": [
+              { "name": "capital", "value": 100000 },
+              { "name": "maxDrawdown", "value": 0.10 },
+              { "name": "dailyDrawdown", "value": 0.05 }
+            ]
+          }
+        },
+        "name": "SetRules",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 1,
+        "position": [460, 300]
+      },
+      {
+        "parameters": {},
+        "name": "CheckFundingRules",
+        "type": "custom-nodes.CheckFundingRules",
+        "typeVersion": 1,
+        "position": [680, 300]
+      },
+      {
+        "parameters": {},
+        "name": "AnalyzePlaybacks",
+        "type": "custom-nodes.AnalyzePlaybacks",
+        "typeVersion": 1,
+        "position": [900, 300]
+      },
+      {
+        "parameters": {
+          "url": "https://newsapi.org/v2/everything?q=Nasdaq&apiKey=your-newsapi-key",
+          "method": "GET"
+        },
+        "name": "NewsAPI",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 1,
+        "position": [1120, 300]
+      },
+      {
+        "parameters": {},
+        "name": "NewsAnalysis",
+        "type": "custom-nodes.NewsAnalysis",
+        "typeVersion": 1,
+        "position": [1340, 300]
+      },
+      {
+        "parameters": {},
+        "name": "GenerateExcel",
+        "type": "custom-nodes.GenerateExcel",
+        "typeVersion": 1,
+        "position": [1560, 300]
+      },
+      {
+        "parameters": {},
+        "name": "VisualizeResults",
+        "type": "custom-nodes.VisualizeResults",
+        "typeVersion": 1,
+        "position": [1780, 300]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://paper-api.alpaca.markets/v2/orders",
+          "authentication": "headerAuth",
+          "jsonParameters": true,
+          "options": {},
+          "bodyParametersJson": "{\"symbol\":\"MNQ\",\"qty\":1,\"side\":\"buy\",\"type\":\"market\",\"time_in_force\":\"day\"}"
+        },
+        "name": "AlpacaTrade",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 1,
+        "position": [1560, 500]
+      },
+      {
+        "parameters": {
+          "chatId": "your-telegram-chat-id",
+          "text": "={{$node[\"CheckFundingRules\"].json[\"alert\"] || 'Trade registrado. Drawdown: ' + $node[\"CheckFundingRules\"].json[\"drawdown\"]}}"
+        },
+        "name": "TelegramAlert",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1,
+        "position": [1780, 500]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [[{ "node": "SetRules", "type": "main", "index": 0 }]]
+      },
+      "SetRules": {
+        "main": [[{ "node": "CheckFundingRules", "type": "main", "index": 0 }]]
+      },
+      "CheckFundingRules": {
+        "main": [[{ "node": "AnalyzePlaybacks", "type": "main", "index": 0 }]]
+      },
+      "AnalyzePlaybacks": {
+        "main": [[{ "node": "NewsAPI", "type": "main", "index": 0 }]]
+      },
+      "NewsAPI": {
+        "main": [[{ "node": "NewsAnalysis", "type": "main", "index": 0 }]]
+      },
+      "NewsAnalysis": {
+        "main": [[{ "node": "GenerateExcel", "type": "main", "index": 0 }]]
+      },
+      "GenerateExcel": {
+        "main": [[{ "node": "VisualizeResults", "type": "main", "index": 0 }, { "node": "AlpacaTrade", "type": "main", "index": 0 }]]
+      },
+      "VisualizeResults": {
+        "main": [[{ "node": "TelegramAlert", "type": "main", "index": 0 }]]
+      },
+      "AlpacaTrade": {
+        "main": [[{ "node": "TelegramAlert", "type": "main", "index": 0 }]]
+      }
+    }
+  }
